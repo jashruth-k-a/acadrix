@@ -100,6 +100,9 @@ async def upload_document(
         doc_record["chunk_count"] = len(chunks)
 
     except Exception as e:
+        print(f"❌ Ingestion failed: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
         await docs.update_one(
             {"_id": ObjectId(document_id)},
             {"$set": {"status": "failed"}}

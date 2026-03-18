@@ -53,6 +53,7 @@ class QueryRequest(BaseModel):
     question: str = Field(..., min_length=3, max_length=1000)
     document_id: Optional[str] = None   # None = query across all user docs
     top_k: Optional[int] = 5
+    mode: Optional[str] = "direct" 
 
 
 class QueryResponse(BaseModel):

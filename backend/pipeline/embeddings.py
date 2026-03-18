@@ -1,4 +1,9 @@
-from config import CHUNK_SIZE, CHUNK_OVERLAP
+from config import get_settings
+
+settings = get_settings()
+
+CHUNK_SIZE = 500        # you can tweak later
+CHUNK_OVERLAP = 50
 
 
 def chunk_text(text):

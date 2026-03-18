@@ -1,0 +1,18 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4F8CFF"></stop>
+      <stop offset="50%" stop-color="#7A5CFF"></stop>
+      <stop offset="100%" stop-color="#C850C0"></stop>
+    </linearGradient>
+  </defs>
+
+  <!-- Main A shape -->
+  <path d="M30 100 L55 20 L80 100" stroke="url(#gradA)" stroke-width="10" fill="none" stroke-linecap="round"></path>
+
+  <!-- Cross slash -->
+  <line x1="25" y1="85" x2="85" y2="55" stroke="url(#gradA)" stroke-width="8" stroke-linecap="round"></line>
+
+  <!-- i dot -->
+  <rect x="85" y="45" width="8" height="20" rx="4" fill="url(#gradA)"></rect>
+</svg>

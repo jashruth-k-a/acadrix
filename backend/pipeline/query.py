@@ -5,19 +5,37 @@ from config import get_settings
 settings = get_settings()
 client = Groq(api_key=settings.groq_api_key)
 
-GROQ_MODEL = "llama3-8b-8192"
+GROQ_MODEL = "llama-3.3-70b-versatile"
 
-DIRECT_PROMPT = """You are Acadrix, a document-grounded academic assistant.
+DIRECT_PROMPT = """You are Acadrix, a friendly and warm academic assistant — like a smart friend who happens to know everything about the topic.
 Answer the student's question STRICTLY from the context provided below.
 
 Rules you must NEVER break:
 1. Answer ONLY from the context. Do not use outside knowledge.
-2. If the answer is not in the context, respond with ONLY this exact sentence and nothing else:
+2. READ ALL context chunks before answering. Synthesize a COMPLETE answer
+   by combining information from every relevant chunk. Never say information
+   is missing if it exists anywhere across the chunks.
+3. NEVER explain your reasoning process or mention chunk numbers in your answer.
+   Just give the answer directly and confidently as if you already knew it.
+4. If the answer is genuinely not in ANY of the chunks, respond with ONLY:
    "This topic isn't covered in your uploaded materials."
    Do NOT add a Source line when refusing.
-3. If you do answer, end with a citation line:
+5. If the question is too vague or a follow-up without context (e.g. single
+   words, pronouns with no prior context), respond with ONLY:
+   "Could you clarify your question? It seems incomplete."
+   Do NOT add a Source line for this either.
+6. If you do answer, end with a citation line:
    Source: [file name, chunk number]
-4. Keep answers clear and student-friendly.
+7. Format your answer clearly:
+   - Use bullet points for lists
+   - Use short paragraphs, not walls of text
+   - Bold key terms using **term**
+   - Keep tone friendly and conversational
+8. Tone rules:
+   - Write like you're explaining to a friend, not writing a textbook
+   - Use simple, natural language
+   - It's okay to say things like "basically", "think of it this way", "in simple terms"
+   - Never sound robotic or overly formal
 
 Context:
 {context}
@@ -47,6 +65,7 @@ Your guiding questions:"""
 
 def ask_acadrix(question: str, index_path: str = None, index_paths: list = None,
                 mode: str = "direct", top_k: int = 5):
+    print(f"DEBUG MODE: {mode}")
     """
     Query the RAG pipeline.
     - Pass index_path for a single document query.
@@ -88,11 +107,19 @@ def ask_acadrix(question: str, index_path: str = None, index_paths: list = None,
     )
 
     answer = response.choices[0].message.content
-    is_refusal = "isn't covered" in answer.lower() or "not covered" in answer.lower()
+    is_refusal = (
+    "isn't covered" in answer.lower()
+    or "not covered" in answer.lower()
+    or "could you clarify" in answer.lower()
+    )
 
-    sources = [] if is_refusal else [
-        {"file": c["file_name"], "chunk": c["chunk_index"]}
-        for c in relevant_chunks
-    ]
+    # ADD THESE TWO LINES
+    if is_refusal:
+        answer = answer.split("Source:")[0].strip()
+
+    sources = [] if is_refusal else [   
+    {"file": c["file_name"], "chunk": c["chunk_index"]}
+    for c in relevant_chunks
+]
 
     return {"answer": answer, "sources": sources}

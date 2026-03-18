@@ -37,7 +37,7 @@ async def query_documents(
             raise HTTPException(status_code=404, detail="Document not found or not ready")
 
         index_path = get_index_path(user_id, body.document_id)
-        result = ask_acadrix(body.question, index_path=index_path, top_k=body.top_k)
+        result = ask_acadrix(body.question, index_path=index_path, top_k=body.top_k, mode=body.mode)
 
     # Query across all user documents
     else:
@@ -48,7 +48,7 @@ async def query_documents(
             raise HTTPException(status_code=400, detail="No ready documents found. Please upload and wait for processing.")
 
         index_paths = [get_index_path(user_id, str(doc["_id"])) for doc in ready_docs]
-        result = ask_acadrix(body.question, index_paths=index_paths, top_k=body.top_k)
+        result = ask_acadrix(body.question, index_paths=index_paths, top_k=body.top_k, mode=body.mode)
 
     # Save to history
     history_col = get_history_collection()

@@ -1,0 +1,23 @@
+<svg width="300" height="100" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4F8CFF"></stop>
+      <stop offset="50%" stop-color="#7A5CFF"></stop>
+      <stop offset="100%" stop-color="#C850C0"></stop>
+    </linearGradient>
+  </defs>
+
+  <!-- ICON -->
+  <g transform="translate(10,10)">
+    <path d="M20 70 L40 10 L60 70" stroke="url(#gradA)" stroke-width="6" fill="none" stroke-linecap="round"></path>
+
+    <line x1="15" y1="60" x2="65" y2="35" stroke="url(#gradA)" stroke-width="5" stroke-linecap="round"></line>
+
+    <rect x="65" y="30" width="6" height="18" rx="3" fill="url(#gradA)"></rect>
+  </g>
+
+  <!-- TEXT -->
+  <text x="100" y="60" font-family="Inter, Sora, system-ui, sans-serif" font-size="34" fill="#E5E7EB" font-weight="600" letter-spacing="0.5">
+    Acadrix
+  </text>
+</svg>

@@ -5,7 +5,10 @@ from pathlib import Path
 import pdfplumber
 from pptx import Presentation
 
-from config import DOCUMENTS_PATH
+from config import get_settings
+
+settings = get_settings()
+DOCUMENTS_PATH = settings.upload_dir
 
 
 def read_txt_from_path(file_path):
