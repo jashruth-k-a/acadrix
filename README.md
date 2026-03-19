@@ -1,8 +1,8 @@
 # Acadrix
 
-> AI in Education (EdTech) focused on syllabus-bound, hallucination-free answers with adaptive study modes.
+> AI in Education (EdTech) focused on syllabus-bound, hallucination free answers with adaptive study modes.
 
-Acadrix is a RAG-powered academic assistant that lets students upload their study materials and ask questions — getting precise, document-grounded answers with zero hallucination. Built for students who want to study smarter, not harder.
+Acadrix is a RAG-powered academic assistant that lets students upload their study materials and ask questions getting precise, document-grounded answers with zero hallucination. Built for students who want to study smarter, not harder.
 
 ---
 
@@ -170,4 +170,4 @@ MIT
 
 ---
 
-Built by [Jashruth K A](https://github.com/jashhruthh)
+Built by [Jashruth K A](https://github.com/jashruth-k-a)
