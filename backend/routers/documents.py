@@ -1,5 +1,4 @@
 import os
-import shutil
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from bson import ObjectId
@@ -14,12 +13,7 @@ settings = get_settings()
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 ALLOWED_EXTENSIONS = {".pdf", ".txt", ".pptx"}
-MAX_FILE_SIZE = settings.max_file_size_mb * 1024 * 1024  # bytes
-
-
-def get_index_path(user_id: str, document_id: str) -> str:
-    """Per-document FAISS index path."""
-    return os.path.join(settings.faiss_index_path, user_id, document_id)
+MAX_FILE_SIZE = settings.max_file_size_mb * 1024 * 1024
 
 
 def doc_to_out(doc: dict) -> DocumentOut:
@@ -43,16 +37,18 @@ async def upload_document(
     # Validate extension
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}. Allowed: pdf, txt, pptx")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type: {ext}. Allowed: pdf, txt, pptx"
+        )
 
     # Read file bytes
     file_bytes = await file.read()
     if len(file_bytes) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail=f"File too large. Max size: {settings.max_file_size_mb}MB")
-
-    # Save to disk
-    user_upload_dir = os.path.join(settings.upload_dir, current_user["user_id"])
-    os.makedirs(user_upload_dir, exist_ok=True)
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Max size: {settings.max_file_size_mb}MB"
+        )
 
     now = datetime.now(timezone.utc)
     docs = get_documents_collection()
@@ -71,16 +67,15 @@ async def upload_document(
     result = await docs.insert_one(doc_record)
     document_id = str(result.inserted_id)
 
-    # Save file to disk
-    file_path = os.path.join(user_upload_dir, f"{document_id}{ext}")
-    with open(file_path, "wb") as f:
-        f.write(file_bytes)
-
     # Run ingestion pipeline
     try:
         from pipeline.ingest import extract_text_from_bytes
         from pipeline.embeddings import chunk_documents
-        from pipeline.vector_store import create_embeddings, build_faiss_index, save_index
+        from pipeline.vector_store import (
+            create_embeddings,
+            build_faiss_index,
+            save_index_to_gridfs
+        )
 
         text = extract_text_from_bytes(file_bytes, ext)
         documents = [{"file_name": file.filename, "text": text}]
@@ -88,10 +83,13 @@ async def upload_document(
         embeddings, chunks = create_embeddings(chunks)
         index = build_faiss_index(embeddings)
 
-        index_path = get_index_path(current_user["user_id"], document_id)
-        save_index(index, chunks, index_path)
+        # Save to GridFS instead of local disk
+        await save_index_to_gridfs(
+            index, chunks,
+            current_user["user_id"],
+            document_id
+        )
 
-        # Update status to ready
         await docs.update_one(
             {"_id": ObjectId(document_id)},
             {"$set": {"status": "ready", "chunk_count": len(chunks)}}
@@ -127,19 +125,15 @@ async def delete_document(
     current_user: dict = Depends(get_current_user),
 ):
     docs = get_documents_collection()
-    doc = await docs.find_one({"_id": ObjectId(document_id), "user_id": current_user["user_id"]})
+    doc = await docs.find_one({
+        "_id": ObjectId(document_id),
+        "user_id": current_user["user_id"]
+    })
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    # Delete FAISS index from disk
-    index_path = get_index_path(current_user["user_id"], document_id)
-    if os.path.exists(index_path):
-        shutil.rmtree(index_path)
-
-    # Delete uploaded file
-    ext = doc.get("extension", "")
-    file_path = os.path.join(settings.upload_dir, current_user["user_id"], f"{document_id}{ext}")
-    if os.path.exists(file_path):
-        os.remove(file_path)
+    # Delete from GridFS
+    from pipeline.vector_store import delete_index_from_gridfs
+    await delete_index_from_gridfs(current_user["user_id"], document_id)
 
     await docs.delete_one({"_id": ObjectId(document_id)})

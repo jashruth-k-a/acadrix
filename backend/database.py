@@ -1,23 +1,22 @@
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
 from config import get_settings
 
 settings = get_settings()
 
-# MongoDB client — created once, reused across requests
 client: AsyncIOMotorClient = None
 db = None
+fs: AsyncIOMotorGridFSBucket = None
 
 
 async def connect_db():
-    """Open MongoDB connection — called on app startup."""
-    global client, db
+    global client, db, fs
     client = AsyncIOMotorClient(settings.mongodb_uri)
     db = client[settings.database_name]
+    fs = AsyncIOMotorGridFSBucket(db, bucket_name="faiss_indexes")
     print(f"✅ Connected to MongoDB — database: '{settings.database_name}'")
 
 
 async def close_db():
-    """Close MongoDB connection — called on app shutdown."""
     global client
     if client:
         client.close()
@@ -25,11 +24,12 @@ async def close_db():
 
 
 def get_db():
-    """Return the active database instance."""
     return db
 
 
-# ── Collection helpers ─────────────────────────────────────────────────────────
+def get_fs():
+    return fs
+
 
 def get_users_collection():
     return db["users"]

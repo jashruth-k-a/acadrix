@@ -1,6 +1,7 @@
 from groq import Groq
-from pipeline.vector_store import search_index, search_multiple_indexes
 from config import get_settings
+import faiss
+import numpy as np
 
 settings = get_settings()
 client = Groq(api_key=settings.groq_api_key)
@@ -63,23 +64,38 @@ Student's question: {question}
 Your guiding questions:"""
 
 
-def ask_acadrix(question: str, index_path: str = None, index_paths: list = None,
+def search_with_index(question: str, index, chunks: list, top_k: int = 5):
+    """Search a FAISS index directly using index and chunks objects."""
+    from pipeline.vector_store import get_embeddings
+
+    question_embedding = get_embeddings([question])
+    distances, indices = index.search(
+        np.array(question_embedding, dtype=np.float32), top_k
+    )
+
+    results = []
+    for i, idx in enumerate(indices[0]):
+        if idx != -1 and idx < len(chunks):
+            chunk = chunks[idx].copy()
+            chunk["score"] = float(distances[0][i])
+            results.append(chunk)
+
+    return results
+
+
+def ask_acadrix(question: str, index=None, chunks: list = None,
                 mode: str = "direct", top_k: int = 5):
-    print(f"DEBUG MODE: {mode}")
     """
     Query the RAG pipeline.
-    - Pass index_path for a single document query.
-    - Pass index_paths (list) to query across multiple documents.
+    Pass index and chunks directly (loaded from GridFS).
     """
-    if index_paths:
-        relevant_chunks = search_multiple_indexes(question, index_paths, top_k=top_k)
-    elif index_path:
-        relevant_chunks = search_index(question, index_path, top_k=top_k)
-    else:
+    if index is None or chunks is None:
         return {
             "answer": "No documents have been indexed yet. Please upload your study materials first.",
             "sources": []
         }
+
+    relevant_chunks = search_with_index(question, index, chunks, top_k=top_k)
 
     if not relevant_chunks:
         return {
@@ -108,18 +124,17 @@ def ask_acadrix(question: str, index_path: str = None, index_paths: list = None,
 
     answer = response.choices[0].message.content
     is_refusal = (
-    "isn't covered" in answer.lower()
-    or "not covered" in answer.lower()
-    or "could you clarify" in answer.lower()
+        "isn't covered" in answer.lower()
+        or "not covered" in answer.lower()
+        or "could you clarify" in answer.lower()
     )
 
-    # ADD THESE TWO LINES
     if is_refusal:
         answer = answer.split("Source:")[0].strip()
 
-    sources = [] if is_refusal else [   
-    {"file": c["file_name"], "chunk": c["chunk_index"]}
-    for c in relevant_chunks
-]
+    sources = [] if is_refusal or mode == "socratic" else [
+        {"file": c["file_name"], "chunk": c["chunk_index"]}
+        for c in relevant_chunks
+    ]
 
     return {"answer": answer, "sources": sources}
