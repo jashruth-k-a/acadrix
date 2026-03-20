@@ -84,11 +84,8 @@ def search_with_index(question: str, index, chunks: list, top_k: int = 5):
 
 
 def ask_acadrix(question: str, index=None, chunks: list = None,
-                mode: str = "direct", top_k: int = 5):
-    """
-    Query the RAG pipeline.
-    Pass index and chunks directly (loaded from GridFS).
-    """
+                mode: str = "direct", top_k: int = 5, history: list = None):
+
     if index is None or chunks is None:
         return {
             "answer": "No documents have been indexed yet. Please upload your study materials first.",
@@ -115,9 +112,16 @@ def ask_acadrix(question: str, index=None, chunks: list = None,
     else:
         prompt = DIRECT_PROMPT.format(context=context, question=question)
 
+    # Build messages with history
+    messages = []
+    if history:
+        for h in history[:-1]:  # exclude last message (current question)
+            messages.append({"role": h["role"], "content": h["content"]})
+    messages.append({"role": "user", "content": prompt})
+
     response = client.chat.completions.create(
         model=GROQ_MODEL,
-        messages=[{"role": "user", "content": prompt}],
+        messages=messages,
         temperature=0.2,
         max_tokens=1024
     )

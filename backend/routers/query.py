@@ -85,11 +85,12 @@ async def query_documents(
             )
 
         result = ask_acadrix(
-            body.question,
-            index=combined_index,
-            chunks=all_chunks,
-            mode=body.mode,
-            top_k=body.top_k
+        body.question,
+        index=index,
+        chunks=chunks,
+        mode=body.mode,
+        top_k=body.top_k,
+        history=[h.dict() for h in body.history] if body.history else []
         )
 
     # Save to history

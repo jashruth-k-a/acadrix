@@ -4,10 +4,19 @@ import { queryDocuments, listDocuments } from "../api";
 import Sidebar from "../components/Sidebar";
 import ReactMarkdown from "react-markdown";
 
+const STORAGE_KEY = "acadrix_chat_messages";
+
 export default function Query() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
   const [question, setQuestion] = useState("");
   const [documents, setDocuments] = useState([]);
   const [selectedDoc, setSelectedDoc] = useState(searchParams.get("doc") || "");
@@ -24,6 +33,11 @@ export default function Query() {
       .catch(() => {});
   }, []);
 
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+  }, [messages]);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -33,9 +47,17 @@ export default function Query() {
     const q = question.trim();
     if (!q || loading) return;
 
-    setMessages((prev) => [...prev, { role: "user", content: q }]);
+    const newMessage = { role: "user", content: q };
+    const updatedMessages = [...messages, newMessage];
+    setMessages(updatedMessages);
     setQuestion("");
     setLoading(true);
+
+    // Build history for context (last 6 messages max)
+    const history = updatedMessages.slice(-6).map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
 
     try {
       const res = await queryDocuments({
@@ -43,6 +65,7 @@ export default function Query() {
         document_id: selectedDoc || null,
         mode,
         top_k: 5,
+        history,
       });
       setMessages((prev) => [
         ...prev,
@@ -57,6 +80,11 @@ export default function Query() {
       setLoading(false);
       inputRef.current?.focus();
     }
+  };
+
+  const handleClearChat = () => {
+    setMessages([]);
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   return (
@@ -82,23 +110,28 @@ export default function Query() {
               <option value="socratic">Socratic</option>
             </select>
           </div>
+          {messages.length > 0 && (
+            <button className="btn-danger" onClick={handleClearChat}>
+              Clear Chat
+            </button>
+          )}
         </div>
 
         {/* Messages */}
         <div className="chat-messages">
-        {messages.length === 0 && (
-        <div className="empty-state">
-        <p className="empty-icon">💬</p>
-        <p className="empty-title">
-        {mode === "socratic" ? "Socratic Mode" : "Ask anything"}
-        </p>
-        <p className="empty-sub">
-        {mode === "socratic"
-          ? "Instead of giving you the Direct Answer, I'll guide you with Questions to help you think it through and arrive at the Answer!"
-          : "Questions are answered from your uploaded documents."}
-        </p>
-        </div>
-        )}
+          {messages.length === 0 && (
+            <div className="empty-state">
+              <p className="empty-icon">💬</p>
+              <p className="empty-title">
+                {mode === "socratic" ? "Socratic Mode" : "Ask anything"}
+              </p>
+              <p className="empty-sub">
+                {mode === "socratic"
+                  ? "Instead of giving you the Direct Answer, I'll guide you with Questions to help you think it through and arrive at the Answer!"
+                  : "Questions are answered from your uploaded documents."}
+              </p>
+            </div>
+          )}
 
           {messages.map((msg, i) => (
             <div key={i} className={`message ${msg.role}`}>
