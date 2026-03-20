@@ -61,6 +61,17 @@ class QueryResponse(BaseModel):
     sources: List[dict]
     document_id: Optional[str]
     question: str
+    
+class HistoryMessage(BaseModel):
+    role: str
+    content: str
+
+class QueryRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=1000)
+    document_id: Optional[str] = None
+    top_k: Optional[int] = 5
+    mode: Optional[str] = "direct"
+    history: Optional[List[HistoryMessage]] = []
 
 
 # ── History Models ─────────────────────────────────────────────────────────────
