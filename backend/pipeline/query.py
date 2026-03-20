@@ -1,6 +1,5 @@
 from groq import Groq
 from config import get_settings
-import faiss
 import numpy as np
 
 settings = get_settings()
@@ -38,7 +37,10 @@ Rules you must NEVER break:
    - It's okay to say things like "basically", "think of it this way", "in simple terms"
    - Never sound robotic or overly formal
 
-Context:
+Conversation History (for context on follow-up questions):
+{history_context}
+
+Context from documents:
 {context}
 
 Question: {question}
@@ -56,12 +58,60 @@ Rules you must NEVER break:
 4. If the topic isn't in the context, say ONLY:
    "This topic isn't covered in your uploaded materials."
 
-Context:
+Conversation History (for context on follow-up questions):
+{history_context}
+
+Context from documents:
 {context}
 
 Student's question: {question}
 
 Your guiding questions:"""
+
+
+FOLLOWUP_TRIGGERS = [
+    "explain again", "didn't understand", "didnt understand",
+    "don't understand", "dont understand", "what do you mean",
+    "tell me more", "elaborate", "can you clarify", "i don't get it",
+    "i dont get it", "what about it", "more detail", "simplify",
+    "in simpler terms", "again", "repeat", "once more", "huh",
+    "what", "how so", "why so"
+]
+
+
+def rewrite_question(question: str, history: list) -> str:
+    """Rewrite vague follow-up questions using conversation history."""
+    q_lower = question.lower().strip()
+    is_followup = any(trigger in q_lower for trigger in FOLLOWUP_TRIGGERS)
+
+    if is_followup and history and len(history) >= 2:
+        # Find last user question from history
+        last_question = ""
+        for h in reversed(history[:-1]):
+            if h["role"] == "user":
+                last_question = h["content"]
+                break
+
+        if last_question:
+            # Rewrite as combined query so FAISS finds right chunks
+            return f"{last_question} {question}"
+
+    return question
+
+
+def build_history_context(history: list) -> str:
+    """Build a readable history string for the prompt."""
+    if not history or len(history) <= 1:
+        return "No prior conversation."
+
+    lines = []
+    for h in history[:-1]:  # exclude current question
+        role = "Student" if h["role"] == "user" else "Acadrix"
+        # Truncate long messages to keep prompt size manageable
+        content = h["content"][:300] + "..." if len(h["content"]) > 300 else h["content"]
+        lines.append(f"{role}: {content}")
+
+    return "\n".join(lines[-6:])  # last 6 exchanges max
 
 
 def search_with_index(question: str, index, chunks: list, top_k: int = 5):
@@ -92,7 +142,10 @@ def ask_acadrix(question: str, index=None, chunks: list = None,
             "sources": []
         }
 
-    relevant_chunks = search_with_index(question, index, chunks, top_k=top_k)
+    # Rewrite follow-up questions before FAISS search
+    effective_question = rewrite_question(question, history) if history else question
+
+    relevant_chunks = search_with_index(effective_question, index, chunks, top_k=top_k)
 
     if not relevant_chunks:
         return {
@@ -107,21 +160,25 @@ def ask_acadrix(question: str, index=None, chunks: list = None,
         )
     context = "\n\n---\n\n".join(context_parts)
 
-    if mode == "socratic":
-        prompt = SOCRATIC_PROMPT.format(context=context, question=question)
-    else:
-        prompt = DIRECT_PROMPT.format(context=context, question=question)
+    # Build history context string
+    history_context = build_history_context(history) if history else "No prior conversation."
 
-    # Build messages with history
-    messages = []
-    if history:
-        for h in history[:-1]:  # exclude last message (current question)
-            messages.append({"role": h["role"], "content": h["content"]})
-    messages.append({"role": "user", "content": prompt})
+    if mode == "socratic":
+        prompt = SOCRATIC_PROMPT.format(
+            context=context,
+            question=question,
+            history_context=history_context
+        )
+    else:
+        prompt = DIRECT_PROMPT.format(
+            context=context,
+            question=question,
+            history_context=history_context
+        )
 
     response = client.chat.completions.create(
         model=GROQ_MODEL,
-        messages=messages,
+        messages=[{"role": "user", "content": prompt}],
         temperature=0.2,
         max_tokens=1024
     )
