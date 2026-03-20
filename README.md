@@ -1,8 +1,8 @@
 # Acadrix
 
-> AI in Education (EdTech) focused on syllabus-bound, hallucination free answers with adaptive study modes.
+> AI in Education (EdTech) focused on syllabus-bound, hallucination-free answers with adaptive study modes.
 
-Acadrix is a RAG-powered academic assistant that lets students upload their study materials and ask questions getting precise, document-grounded answers with zero hallucination. Built for students who want to study smarter, not harder.
+Acadrix is a RAG-powered academic assistant that lets students upload their study materials and ask questions — getting precise, document-grounded answers with zero hallucination. Built for students who want to study smarter, not harder.
 
 ---
 
@@ -10,6 +10,8 @@ Acadrix is a RAG-powered academic assistant that lets students upload their stud
 
 - **Document-Grounded Answers** — Responses are strictly sourced from uploaded materials. If it's not in your documents, Acadrix won't make it up.
 - **Adaptive Study Modes** — Switch between Direct Answer mode for quick answers and Socratic mode for guided learning through questions.
+- **Conversation Memory** — Follow-up questions like "explain again" or "I didn't understand" are handled intelligently by reusing previous context.
+- **Persistent Indexes** — FAISS indexes are stored in MongoDB GridFS, surviving server restarts and redeployments.
 - **Multi-Document Support** — Upload multiple documents and query across all of them simultaneously.
 - **Query History** — Every question and answer is saved and accessible for review.
 - **JWT Authentication** — Secure user accounts with token-based authentication.
@@ -27,12 +29,12 @@ Acadrix is a RAG-powered academic assistant that lets students upload their stud
 
 **Backend**
 - FastAPI
-- MongoDB (Atlas)
+- MongoDB Atlas — database + GridFS for FAISS index persistence
 - FAISS — vector similarity search
-- Sentence Transformers — document embeddings
+- Hugging Face Inference API — document embeddings (`all-MiniLM-L6-v2`)
 - Groq (LLaMA 3.3 70B) — LLM inference
 - JWT — authentication
-- PyMuPDF / pypdfium2 — PDF parsing
+- pdfplumber / python-pptx — document parsing
 
 ---
 
@@ -53,6 +55,7 @@ acadrix/
 │   │   └── history.py
 │   └── pipeline/
 │       ├── ingest.py
+│       ├── embeddings.py
 │       ├── query.py
 │       └── vector_store.py
 └── frontend/
@@ -82,6 +85,7 @@ acadrix/
 - Node.js 18+
 - MongoDB Atlas account
 - Groq API key
+- Hugging Face account + API token
 
 ### Backend Setup
 
@@ -99,7 +103,7 @@ Create a `.env` file in the `backend/` folder (see `.env.example`):
 uvicorn main:app --reload
 ```
 
-Backend runs at `http://127.0.0.1:8000`
+Backend runs at `http://127.0.0.1:8000`  
 API docs at `http://127.0.0.1:8000/docs`
 
 ### Frontend Setup
@@ -132,8 +136,9 @@ Frontend runs at `http://localhost:5173`
 | `DATABASE_NAME` | Database name (e.g. `acadrix`) |
 | `JWT_SECRET_KEY` | Secret key for JWT token signing |
 | `GROQ_API_KEY` | Groq API key for LLM inference |
+| `HF_API_TOKEN` | Hugging Face API token for embeddings |
 | `UPLOAD_DIR` | Directory for uploaded files (e.g. `uploads`) |
-| `FAISS_INDEX_PATH` | Directory for FAISS indexes (e.g. `faiss_index`) |
+| `FAISS_INDEX_PATH` | Directory for local FAISS indexes (e.g. `faiss_index`) |
 | `DEBUG` | `true` for development, `false` for production |
 
 ### Frontend — `frontend/.env`
@@ -149,18 +154,37 @@ Frontend runs at `http://localhost:5173`
 - **Backend** — [Render](https://render.com) — Root directory: `backend`
 - **Frontend** — [Vercel](https://vercel.com) — Root directory: `frontend`
 
+> **Note:** The backend is hosted on Render's free tier which spins down after
+> 15 minutes of inactivity. The first request may take 30-50 seconds to wake up.
+> Subsequent requests will be faster.
+
 ---
 
 ## How It Works
 
-1. User uploads a PDF or document
-2. Backend parses and chunks the document
-3. Chunks are embedded using Sentence Transformers and stored in a FAISS index
-4. User asks a question
-5. FAISS retrieves the most relevant chunks via similarity search
-6. Chunks + question are sent to LLaMA 3.3 70B via Groq
-7. LLM generates a grounded answer strictly from the retrieved context
-8. Answer + source citations are returned to the user
+1. User uploads a PDF, PPTX or TXT document
+2. Backend parses and chunks the document into smaller pieces
+3. Chunks are sent to **Hugging Face Inference API** which converts them into vectors using `all-MiniLM-L6-v2`
+4. Vectors are stored in a **FAISS index**, saved to **MongoDB GridFS** for persistence across server restarts
+5. User asks a question
+6. If it's a follow-up ("explain again", "I didn't understand" etc.), the previous answer is reused directly — no FAISS search needed
+7. For new questions, the question is converted to a vector via HF API and FAISS finds the most semantically similar chunks
+8. Top chunks + question are sent to **LLaMA 3.3 70B via Groq API**
+9. LLM generates a grounded answer strictly from the retrieved chunks
+10. Answer + source citations returned to the user
+
+**Study Modes:**
+- **Direct** — straight answer from your documents
+- **Socratic** — guiding questions to help you discover the answer yourself
+
+---
+
+## Known Limitations
+
+- Uploaded files are stored on the server's local disk and may be lost on server restart. FAISS indexes however persist in MongoDB GridFS.
+- Free tier backend (Render) may have a cold start delay of ~30 seconds after inactivity.
+- No cross-session conversation memory — chat history is stored locally in the browser.
+- Follow-up detection is trigger-based. Very short or unusual phrasings may not be recognized as follow-ups.
 
 ---
 
