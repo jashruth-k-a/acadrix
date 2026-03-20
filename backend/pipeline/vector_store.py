@@ -6,7 +6,7 @@ import requests
 import time
 
 HF_API_TOKEN = os.getenv("HF_API_TOKEN")
-HF_MODEL_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
+HF_MODEL_URL = "https://router.huggingface.co/hf-inference/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
 
 HEADERS = {"Authorization": f"Bearer {HF_API_TOKEN}"}
 
