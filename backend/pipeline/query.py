@@ -75,61 +75,38 @@ FOLLOWUP_TRIGGERS = [
     "tell me more", "elaborate", "can you clarify", "i don't get it",
     "i dont get it", "what about it", "more detail", "simplify",
     "in simpler terms", "again", "repeat", "once more", "huh",
-    "what", "how so", "why so"
+    "how so", "why so"
 ]
 
 
-def rewrite_question(question: str, history: list) -> str:
-    """Rewrite vague follow-up questions using conversation history."""
+def is_followup(question: str) -> bool:
     q_lower = question.lower().strip()
-    is_followup = any(trigger in q_lower for trigger in FOLLOWUP_TRIGGERS)
-
-    if is_followup and history and len(history) >= 2:
-        # Find last user question from history
-        last_question = ""
-        for h in reversed(history[:-1]):
-            if h["role"] == "user":
-                last_question = h["content"]
-                break
-
-        if last_question:
-            # Rewrite as combined query so FAISS finds right chunks
-            return f"{last_question} {question}"
-
-    return question
+    return any(trigger in q_lower for trigger in FOLLOWUP_TRIGGERS)
 
 
 def build_history_context(history: list) -> str:
-    """Build a readable history string for the prompt."""
     if not history or len(history) <= 1:
         return "No prior conversation."
-
     lines = []
-    for h in history[:-1]:  # exclude current question
+    for h in history[:-1]:
         role = "Student" if h["role"] == "user" else "Acadrix"
-        # Truncate long messages to keep prompt size manageable
         content = h["content"][:300] + "..." if len(h["content"]) > 300 else h["content"]
         lines.append(f"{role}: {content}")
-
-    return "\n".join(lines[-6:])  # last 6 exchanges max
+    return "\n".join(lines[-6:])
 
 
 def search_with_index(question: str, index, chunks: list, top_k: int = 5):
-    """Search a FAISS index directly using index and chunks objects."""
     from pipeline.vector_store import get_embeddings
-
     question_embedding = get_embeddings([question])
     distances, indices = index.search(
         np.array(question_embedding, dtype=np.float32), top_k
     )
-
     results = []
     for i, idx in enumerate(indices[0]):
         if idx != -1 and idx < len(chunks):
             chunk = chunks[idx].copy()
             chunk["score"] = float(distances[0][i])
             results.append(chunk)
-
     return results
 
 
@@ -142,10 +119,47 @@ def ask_acadrix(question: str, index=None, chunks: list = None,
             "sources": []
         }
 
-    # Rewrite follow-up questions before FAISS search
-    effective_question = rewrite_question(question, history) if history else question
+    # ── Follow-up handling: bypass FAISS, re-explain from previous answer ──
+    if is_followup(question) and history:
+        last_assistant_answer = ""
+        for h in reversed(history[:-1]):
+            if h["role"] == "assistant":
+                last_assistant_answer = h["content"]
+                break
 
-    relevant_chunks = search_with_index(effective_question, index, chunks, top_k=top_k)
+        if last_assistant_answer:
+            followup_prompt = f"""You are Acadrix, a friendly academic assistant.
+
+The student didn't understand your previous explanation. Re-explain it differently.
+
+Your previous explanation:
+{last_assistant_answer}
+
+Rules:
+1. Re-explain the SAME topic in a simpler, different way
+2. Use a different analogy or approach than before
+3. Keep it friendly and conversational
+4. Use bullet points and short paragraphs
+5. Do NOT add a Source line
+
+Student says: {question}
+
+Re-explanation:"""
+
+            response = client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=[{"role": "user", "content": followup_prompt}],
+                temperature=0.4,
+                max_tokens=1024
+            )
+
+            return {
+                "answer": response.choices[0].message.content,
+                "sources": []
+            }
+
+    # ── Normal flow: search FAISS ──
+    relevant_chunks = search_with_index(question, index, chunks, top_k=top_k)
 
     if not relevant_chunks:
         return {
@@ -160,7 +174,6 @@ def ask_acadrix(question: str, index=None, chunks: list = None,
         )
     context = "\n\n---\n\n".join(context_parts)
 
-    # Build history context string
     history_context = build_history_context(history) if history else "No prior conversation."
 
     if mode == "socratic":
