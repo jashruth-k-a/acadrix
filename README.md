@@ -6,6 +6,47 @@ Acadrix is a RAG-powered academic assistant that lets students upload their stud
 
 ---
 
+## ⚠️ Important — Cold Start Notice
+
+> The backend is hosted on **Render's free tier**, which spins down after 15 minutes of inactivity.
+> **The first request (login/register) may take up to ~45 seconds** while the server wakes up.
+> This is expected behaviour — subsequent requests will be fast.
+>
+> Please be patient on first load. The app is fully functional once the server is awake.
+
+---
+
+## 🚀 Live Demo
+
+| | Link |
+|---|---|
+| **Frontend** | [your-app.vercel.app](https://your-app.vercel.app) |
+| **Backend API Docs** | [your-api.onrender.com/docs](https://your-api.onrender.com/docs) |
+
+> 💡 Tip: Open the backend API docs link first to wake the server before navigating to the frontend.
+
+---
+
+## Screenshots
+
+### Login & Dashboard
+<!-- Add a screenshot or GIF of the login page and dashboard here -->
+<!-- Recommended: Use a tool like LICEcap or Kap to record a short GIF -->
+![Dashboard](./screenshots/dashboard.png)
+
+### Asking a Question (Direct Mode)
+![Query - Direct Mode](./screenshots/query_direct.png)
+
+### Socratic Study Mode
+![Query - Socratic Mode](./screenshots/query_socratic.png)
+
+### Query History
+![History](./screenshots/history.png)
+
+> 📸 _Screenshots above show the app running after the backend has warmed up._
+
+---
+
 ## Features
 
 - **Document-Grounded Answers** — Responses are strictly sourced from uploaded materials. If it's not in your documents, Acadrix won't make it up.
@@ -154,10 +195,6 @@ Frontend runs at `http://localhost:5173`
 - **Backend** — [Render](https://render.com) — Root directory: `backend`
 - **Frontend** — [Vercel](https://vercel.com) — Root directory: `frontend`
 
-> **Note:** The backend is hosted on Render's free tier which spins down after
-> 15 minutes of inactivity. The first request may take 30-50 seconds to wake up.
-> Subsequent requests will be faster.
-
 ---
 
 ## How It Works
@@ -182,7 +219,7 @@ Frontend runs at `http://localhost:5173`
 ## Known Limitations
 
 - Uploaded files are stored on the server's local disk and may be lost on server restart. FAISS indexes however persist in MongoDB GridFS.
-- Free tier backend (Render) may have a cold start delay of ~30 seconds after inactivity.
+- **Free tier backend (Render) has a cold start delay of up to ~60 seconds** after inactivity — see notice at the top.
 - No cross-session conversation memory — chat history is stored locally in the browser.
 - Follow-up detection is trigger-based. Very short or unusual phrasings may not be recognized as follow-ups.
 
