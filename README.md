@@ -219,15 +219,10 @@ Frontend runs at `http://localhost:5173`
 
 ## Known Limitations
 
-- Original uploaded files are not retained after ingestion — only parsed chunks 
-  and FAISS indexes are stored. FAISS indexes persist in MongoDB GridFS and 
-  survive server restarts.
 - **Free tier backend (Render) has a cold start delay of up to ~60 seconds** 
   after inactivity — see notice at the top.
-- Query history is persisted per user in MongoDB. In-session conversation 
-  context (for follow-up detection) is not carried across page refreshes.
-- Follow-up detection is trigger-based. Very short or unusual phrasings may 
-  not be recognized as follow-ups.
+- Follow-up detection is keyword-based. Single-letter or highly ambiguous 
+  replies may not be recognized as follow-ups.
 
 ---
 
