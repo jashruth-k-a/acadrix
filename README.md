@@ -20,8 +20,8 @@ Acadrix is a RAG-powered academic assistant that lets students upload their stud
 
 | | Link |
 |---|---|
-| **Frontend** | [your-app.vercel.app](https://acadrix.vercel.app) |
-| **Backend API Docs** | [your-api.onrender.com/docs](https://acadrix.onrender.com/docs) |  
+| **Frontend** | [acadrix.vercel.app](https://acadrix.vercel.app) |
+| **Backend API Docs** | [acadrix.onrender.com/docs](https://acadrix.onrender.com/docs) |  
 
 > 💡 Tip: Open the backend API docs link first to wake the server before navigating to the frontend.
 
