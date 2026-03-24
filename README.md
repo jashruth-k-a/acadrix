@@ -220,7 +220,7 @@ Frontend runs at `http://localhost:5173`
 ## Known Limitations
 
 - **Free tier backend (Render) has a cold start delay of up to ~60 seconds** 
-  after inactivity — see notice at the top.
+  after inactivity, see the notice at the top.
 - Follow-up detection is keyword-based. Single-letter or highly ambiguous 
   replies may not be recognized as follow-ups.
 
