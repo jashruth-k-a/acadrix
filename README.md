@@ -29,19 +29,20 @@ Acadrix is a RAG-powered academic assistant that lets students upload their stud
 
 ## Screenshots
 
-### Login & Dashboard
-<!-- Add a screenshot or GIF of the login page and dashboard here -->
-<!-- Recommended: Use a tool like LICEcap or Kap to record a short GIF -->
-![Dashboard](./screenshots/dashboard.png)
+### Login
+![Dashboard](./screenshots/Login.png)
+
+### Dashboard
+![Dashboard](./screenshots/Dashboard.png)
 
 ### Asking a Question (Direct Mode)
-![Query - Direct Mode](./screenshots/query_direct.png)
+![Query - Direct Mode](./screenshots/Query - Direct Mode.png)
 
 ### Socratic Study Mode
-![Query - Socratic Mode](./screenshots/query_socratic.png)
+![Query - Socratic Mode](./screenshots/Query - Socratic Mode.png)
 
 ### Query History
-![History](./screenshots/history.png)
+![History](./screenshots/History.png)
 
 > 📸 _Screenshots above show the app running after the backend has warmed up._
 
