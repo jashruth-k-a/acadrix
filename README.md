@@ -36,10 +36,10 @@ Acadrix is a RAG-powered academic assistant that lets students upload their stud
 ![Dashboard](./screenshots/Dashboard.png)
 
 ### Asking a Question (Direct Mode)
-![Query - Direct Mode](./screenshots/Query - Direct Mode.png)
+![Query - Direct Mode](./screenshots/Query-Direct_Mode.png)
 
 ### Socratic Study Mode
-![Query - Socratic Mode](./screenshots/Query - Socratic Mode.png)
+![Query - Socratic Mode](./screenshots/Query-Socratic_Mode.png)
 
 ### Query History
 ![History](./screenshots/History.png)
