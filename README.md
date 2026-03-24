@@ -223,7 +223,7 @@ Frontend runs at `http://localhost:5173`
   after inactivity, see the notice at the top.
 - Follow-up detection is keyword-based. Single-letter or highly ambiguous 
   replies may not be recognized as follow-ups.
-
+  
 ---
 
 ## License
