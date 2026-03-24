@@ -20,8 +20,8 @@ Acadrix is a RAG-powered academic assistant that lets students upload their stud
 
 | | Link |
 |---|---|
-| **Frontend** | [your-app.vercel.app](https://your-app.vercel.app) |
-| **Backend API Docs** | [your-api.onrender.com/docs](https://your-api.onrender.com/docs) |
+| **Frontend** | [your-app.vercel.app](https://acadrix.vercel.app) |
+| **Backend API Docs** | [your-api.onrender.com/docs](https://acadrix.onrender.com/docs) |  
 
 > 💡 Tip: Open the backend API docs link first to wake the server before navigating to the frontend.
 
@@ -219,10 +219,15 @@ Frontend runs at `http://localhost:5173`
 
 ## Known Limitations
 
-- Uploaded files are stored on the server's local disk and may be lost on server restart. FAISS indexes however persist in MongoDB GridFS.
-- **Free tier backend (Render) has a cold start delay of up to ~60 seconds** after inactivity — see notice at the top.
-- No cross-session conversation memory — chat history is stored locally in the browser.
-- Follow-up detection is trigger-based. Very short or unusual phrasings may not be recognized as follow-ups.
+- Original uploaded files are not retained after ingestion — only parsed chunks 
+  and FAISS indexes are stored. FAISS indexes persist in MongoDB GridFS and 
+  survive server restarts.
+- **Free tier backend (Render) has a cold start delay of up to ~60 seconds** 
+  after inactivity — see notice at the top.
+- Query history is persisted per user in MongoDB. In-session conversation 
+  context (for follow-up detection) is not carried across page refreshes.
+- Follow-up detection is trigger-based. Very short or unusual phrasings may 
+  not be recognized as follow-ups.
 
 ---
 
