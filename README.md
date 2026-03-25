@@ -232,4 +232,4 @@ MIT
 
 ---
 
-Built by [Jashruth K A](https://github.com/jashruth-k-a)update 
+Built by [Jashruth K A](https://github.com/jashruth-k-a)
