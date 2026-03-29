@@ -228,8 +228,8 @@ Frontend runs at `http://localhost:5173`
 
 ## License
 
-MIT
+[MIT](./LICENSE)
 
 ---
 
-Built by [Jashruth K A](https://github.com/jashruth-k-a) 
+Built by [Jashruth K A](https://github.com/jashruth-k-a)
